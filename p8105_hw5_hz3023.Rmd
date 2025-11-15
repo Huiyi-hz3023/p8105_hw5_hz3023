@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(broom)
+library(ggplot2)
 ```
 
 ## Problem 1
@@ -143,8 +144,7 @@ homicides =
 The dataset contains `r nrow(homicides)` observations and `r ncol(homicides)` variables.  Key variables include the date the homicide was reported victima' name race, age, and sex, the city and state where the homicide occurred, and the case disposition.  
 
 ```{r}
-new=
-  homicides |> 
+homicides |> 
   mutate(
     city_state = str_c(city, ", ", state),
     unsolved = disposition %in% c("Closed without arrest", "Open/No arrest"))|>
@@ -189,15 +189,26 @@ city=
   summarize(
     total = n(),
     unsolved = sum(unsolved))
-city|>
+cities= 
+  city|>
   mutate(
     test = map2(unsolved, total, ~ prop.test(.x, .y)),
     tidy = map(test, tidy)) |>
   unnest(tidy) |>
   select(city_state, total, unsolved, estimate, conf.low, conf.high) 
-
+cities
 ```
 ```{r}
-
+cities |>
+  arrange(estimate) |> 
+  mutate(city_state = factor(city_state, levels = city_state)) |>   
+  ggplot(aes(x =city_state , y =estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  labs(
+    title = "Estimated Proportion of Unsolved Homicides by City",
+    x = "City",
+    y = "Proportion Unsolved (with 95% CI)")+
+  coord_flip()
 ```
 
