@@ -136,5 +136,68 @@ ggplot(combined, aes(x = true_mu)) +
 No, the sample average of $\mu$̂ among rejected test is not approximately equal to the true $\mu$. Because the rejection only happens when  $\mu$̂ is far from 0.
 
 ## Problem 3
+```{r}
+homicides =
+  read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv")
+```
+The dataset contains `r nrow(homicides)` observations and `r ncol(homicides)` variables.  Key variables include the date the homicide was reported victima' name race, age, and sex, the city and state where the homicide occurred, and the case disposition.  
 
+```{r}
+new=
+  homicides |> 
+  mutate(
+    city_state = str_c(city, ", ", state),
+    unsolved = disposition %in% c("Closed without arrest", "Open/No arrest"))|>
+  group_by(city_state) |>
+  summarize(
+    total = n(),
+    unsolved_homicides = sum(unsolved)
+  )
+```
+
+```{r}
+new_homicides =
+  homicides |>
+  mutate(
+    city_state = str_c(city, ", ", state),
+    unsolved = disposition %in% c("Closed without arrest", "Open/No arrest"))
+
+baltimore =
+  new_homicides |>
+  filter(city == "Baltimore", state == "MD") |>
+  summarize(
+    total = n(),
+    unsolved = sum(unsolved))
+
+baltimore_test =
+  prop.test(
+    x = baltimore$unsolved,
+    n = baltimore$total)
+
+baltimore_tidy = tidy(baltimore_test) |> 
+  select(estimate, conf.low, conf.high)
+baltimore_tidy
+```
+```{r}
+city=
+  new_homicides |>
+  mutate(
+    city_state = str_c(city, ", ", state),
+    unsolved = disposition %in% c("Closed without arrest", "Open/No arrest")
+  ) |>
+  group_by(city_state) |>
+  summarize(
+    total = n(),
+    unsolved = sum(unsolved))
+city|>
+  mutate(
+    test = map2(unsolved, total, ~ prop.test(.x, .y)),
+    tidy = map(test, tidy)) |>
+  unnest(tidy) |>
+  select(city_state, total, unsolved, estimate, conf.low, conf.high) 
+
+```
+```{r}
+
+```
 
